@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useContext, useEffect, useRef, useState} from "react";
 import QueuedSongList from "./QueuedSongList";
 import {
     CardMedia,
@@ -9,7 +9,11 @@ import {
     CardContent,
     makeStyles
 } from "@material-ui/core";
-import {PlayArrow, SkipNext, SkipPrevious} from "@material-ui/icons";
+import {Pause, PlayArrow, SkipNext, SkipPrevious} from "@material-ui/icons";
+import {SongContext} from "../App";
+import {useQuery} from "@apollo/react-hooks";
+import {GET_QUEUED_SONGS} from "../graphql/queries";
+import ReactPlayer from "react-player";
 
 const useStyles = makeStyles(theme => ({
     container: {
@@ -40,38 +44,113 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function SongPlayer() {
+    const {data} = useQuery(GET_QUEUED_SONGS);
+    const {state, dispatch} = useContext(SongContext);
+    const [played, setPlayed] = useState(0);
+    const [playedSeconds, setplayedSeconds] = useState(0);
+    const [seeking, setSeeking] = useState(false);
+    const reactPlayerRef = useRef();
+    const [positionInQueue, setPositionInQueue] = useState(0);
     const classes = useStyles();
+
+    useEffect(() => {
+        const songIndex = data.queue.findIndex(song => song.id === state.song.id);
+        setPositionInQueue(songIndex)
+    }, [state.song.id, data.queue]);
+
+    useEffect(() => {
+        const nextSong = data.queue[positionInQueue + 1];
+        if (played >= 0.99 && nextSong) {
+            setPlayed(0);
+            dispatch({type: "SET_SONG", payload: { song: nextSong}})
+        }
+    }, [data.queue, played, dispatch, positionInQueue]);
+
+    function handleTogglePlay() {
+        dispatch( state.isPlaying ?  {type: 'PAUSE_SONG'} : {type: 'PLAY_SONG'});
+    }
+
+    function handleProgressChange(_, newValue) {
+        setPlayed(newValue);
+    }
+
+    function handleSeekMouseDown() {
+        setSeeking(true);
+    }
+
+    function handleSeekMouseUp() {
+        setSeeking(false);
+        reactPlayerRef.current.seekTo(played);
+    }
+
+    function formatDuration(seconds) {
+        return new Date(seconds * 1000).toISOString().substr(11, 8);
+    }
+
+    function handlePlayNextSong() {
+        const nextSong = data.queue[positionInQueue + 1];
+        if (nextSong) {
+            dispatch({type: "SET_SONG", payload: {song: nextSong}});
+        }
+    }
+
+    function handlePrevSong() {
+        const prevSong = data.queue[positionInQueue - 1];
+        if (prevSong) {
+            dispatch({type: "SET_SONG", payload: {song: prevSong}});
+        }
+    }
+
     return (
         <>
             <Card variant={'outlined'} className={classes.container}>
                 <div className={classes.details}>
                     <CardContent className={classes.content}>
                         <Typography variant={'h5'} component={'h3'}>
-                            Title
+                            {state.song.title}
                         </Typography>
                         <Typography variant={'subtitle1'} component={'p'} color={'textSecondary'}>
-                            Artist
+                            {state.song.artist}
                         </Typography>
                     </CardContent>
                     <div className={classes.controls}>
-                        <IconButton>
+                        <IconButton onClick={handlePrevSong}>
                             <SkipPrevious />
                         </IconButton>
-                        <IconButton>
-                            <PlayArrow className={classes.playIcon} />
+                        <IconButton onClick={handleTogglePlay}>
+                            {state.isPlaying ? <Pause className={classes.playIcon} /> : <PlayArrow className={classes.playIcon} />}
                         </IconButton>
-                        <IconButton>
+                        <IconButton onClick={handlePlayNextSong}>
                             <SkipNext />
                         </IconButton>
                         <Typography variant={'subtitle1'} component={'p'} color={'textSecondary'}>
-                            00:01:30
+                            {formatDuration(playedSeconds)}
                         </Typography>
                     </div>
-                    <Slider type={"range"} min={0} max={1} step={0.01}/>
+                    <Slider
+                        onChange={handleProgressChange}
+                        onMouseDown={handleSeekMouseDown}
+                        onMouseUp={handleSeekMouseUp}
+                        value={played}
+                        type={"range"}
+                        min={0}
+                        max={1}
+                        step={0.01}/>
                 </div>
-                <CardMedia className={classes.thumbnail} image={'https://scontent.fcgy1-1.fna.fbcdn.net/v/t1.0-9/86459023_3027807477238512_8772855763077955584_n.jpg?_nc_cat=100&_nc_sid=85a577&_nc_eui2=AeFkPlzJIz2qwzBPnT-ImEmYPpXvCQ1bpEQ-le8JDVukRP_xTPdtrnHC89BCjCqXOV6CwizAZfiV_SNiB5TkByFj&_nc_ohc=LgiiVywkgswAX_PGKfM&_nc_ht=scontent.fcgy1-1.fna&oh=d522ea99444312549e0ff9e9970eaff4&oe=5EE192DA'} />
+                <ReactPlayer
+                    ref={reactPlayerRef}
+                    onProgress={({played, playedSeconds}) => {
+                        if (!seeking) {
+                            setPlayed(played);
+                            setplayedSeconds(playedSeconds)
+                        }
+                    }}
+                    url={state.song.url}
+                    playing={state.isPlaying}
+                    hidden />
+                <CardMedia className={classes.thumbnail} image={state.song.thumbnail} />
             </Card>
-            <QueuedSongList/>
+            <QueuedSongList queue={data.queue} />
         </>
     )
 }
