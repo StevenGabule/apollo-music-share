@@ -6,9 +6,7 @@ import Typography from "@material-ui/core/Typography";
 import makeStyles from "@material-ui/core/styles/makeStyles";
 
 const useStyles = makeStyles(theme => ({
-    title: {
-        marginLeft: theme.spacing(2)
-    }
+    title: {marginLeft: theme.spacing(2)}
 }));
 
 function Header() {
