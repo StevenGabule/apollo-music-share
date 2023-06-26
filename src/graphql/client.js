@@ -57,4 +57,5 @@ const client = new ApolloClient({
 const hasQueue = Boolean(localStorage.getItem('queue'));
 const data = { queue: hasQueue ? JSON.parse(localStorage.getItem('queue')) : [] };
 client.writeData({data});
+
 export default client;

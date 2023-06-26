@@ -2,21 +2,19 @@ import React, { useEffect, useState } from "react";
 import { InputAdornment, Button, Dialog, DialogTitle, DialogContent, DialogActions, makeStyles, TextField } from "@material-ui/core";
 import { AddBoxOutlined, Link } from "@material-ui/icons";
 import ReactPlayer from "react-player";
-import YoutubePlayer from "react-player/lib/players/YouTube";
-import SoundcloudPlayer from "react-player/lib/players/SoundCloud";
 
 import { useMutation } from "@apollo/react-hooks";
 import { ADD_SONG } from "../graphql/mutations";
 
 const useStyles = makeStyles((theme) => ({
-  container: { display: "flex",  alignItems: "center" },
+  container: { display: "flex", alignItems: "center" },
   urlInput: { margin: theme.spacing(1) },
-  addSongButton: { margin: theme.spacing(1)},
+  addSongButton: { margin: theme.spacing(1) },
   dialog: { textAlign: "center" },
   thumbnail: { width: "90%" },
 }));
 
-const DEFAULT_SONG = { duration: 0,  title: "", artist: "", thumbnail: "" };
+const DEFAULT_SONG = { duration: 0, title: "", artist: "", thumbnail: "" };
 
 function AddSong() {
   const classes = useStyles();
@@ -36,8 +34,10 @@ function AddSong() {
   async function handleEditSong({ player }) {
     const nestedPlayer = player.player.player;
     let songData;
-    if (nestedPlayer.getVideoData) songData = getYoutubeInfo(nestedPlayer); 
-    else if (nestedPlayer.getCurrentSound) songData = await getSoundCloudInfo(nestedPlayer); 
+
+    if (nestedPlayer.getVideoData) songData = getYoutubeInfo(nestedPlayer);
+    else if (nestedPlayer.getCurrentSound) songData = await getSoundCloudInfo(nestedPlayer);
+
     setSong({ ...songData, url });
   }
 
@@ -80,8 +80,11 @@ function AddSong() {
           artist: artist.length > 0 ? artist : null,
         },
       });
+
       handleCloseDialog();
+
       setSong(DEFAULT_SONG);
+
       setUrl("");
     } catch (e) {
       console.error("Error adding song", e);
@@ -132,7 +135,7 @@ function AddSong() {
             helperText={handleInputError("thumbnail") && "Fill out field"}
             label={"Thumbnail"}
             value={thumbnail}
-            fullWidth 
+            fullWidth
           />
         </DialogContent>
 
@@ -169,8 +172,7 @@ function AddSong() {
         onClick={() => setDialog(true)}
         variant={"contained"}
         color={"primary"}
-        endIcon={<AddBoxOutlined />}
-      >
+        endIcon={<AddBoxOutlined />}>
         Add Song
       </Button>
 
